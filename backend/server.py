@@ -1,19 +1,19 @@
-from flask import Flask, request, jsonify
+# -*-coding:utf-8 -*-
+# @Time  : 2021/9/23 0023 22:40
+# @File  :test_server.py
+# @Author:swzhou
+# @email :zhou_sanwang@163.com
+# @describe: server
+
+from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
+from backend.settings import BaseConfig
+
 
 app = Flask(__name__)
+app.config.from_object(BaseConfig)
 api = Api(app)
-app.config['db'] = []
-
-ip = 'x.x.x.x'
-db_user = 'xxx'
-db_passwd = 'xxxx'
-db_name = 'flask_test_project'
-
-app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_user}:{db_passwd}@{ip}/{db_name}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
 
@@ -24,7 +24,7 @@ class User(db.Model):
     passwd = db.Column(db.String(16))
 
     def __repr__(self):
-        return jsonify(id=self.id, name=self.name)
+        return f'id: {self.id}, name: {self.name}'
 
 
 class TestCase(db.Model):
@@ -35,7 +35,7 @@ class TestCase(db.Model):
     description = db.Column(db.String(120), unique=False, nullable=True)
 
     def __repr__(self):
-        return jsonify(id=self.id, name=self.name, )
+        return f'id: {self.id}, name: {self.name}'
 
 
 class TestCaseService(Resource):
@@ -47,16 +47,16 @@ class TestCaseService(Resource):
         {'msg': '删除用例失败', 'code': '100002'}
         {'msg': '未找到该用例id', 'code': '100003'}
     """
-
-    def get(self):
+    @staticmethod
+    def get():
         """查询用例"""
         case_id = request.args.get('case_id', None)
-        name = request.args.get('case_id', None)
+        name = request.args.get('name', None)
 
         if case_id:
-            cases = TestCase.query.get(case_id)
+            cases = TestCase.query.filter_by(id=case_id)
         elif name:
-            cases = TestCase.query.filter_by(name=name).first()
+            cases = TestCase.query.filter_by(name=name)
         else:
             cases = TestCase.query.all()
 
@@ -65,9 +65,13 @@ class TestCaseService(Resource):
 
         return {'msg': 'success', 'code': '000000', 'testcase': case_list}
 
-    def post(self, name, steps, description=None):
+    @staticmethod
+    def post():
         """新增测试用例"""
-        # todo:修改传参
+        name = request.json.get('name')
+        steps = request.json.get('steps')
+        description = request.json.get('description')
+
         try:
             case = TestCase(name=name, steps=steps, description=description)
             db.session.add(case)
@@ -75,30 +79,33 @@ class TestCaseService(Resource):
         except Exception as e:
             print('添加失败')
             print(e)
-            db.session.callback()
-            return {'msg': '添加用例失败', 'code': '100001'}
-
+            db.session.rollback()
+            return {'msg': '用例添加失败', 'code': '100001'}
         return {'msg': 'success', 'code': '000000'}
 
-    def delete(self, case_id):
-        """todo:删除测试用例"""
-        # todo:修改传参
+    @staticmethod
+    def delete():
+        """删除指定测试用例"""
+        case_id = request.json.get('case_id')
+
         case = TestCase.query.get(case_id)
         if case:
             try:
-                case.delete()
+                TestCase.query.filter_by(id=case_id).delete()
+                db.session.commit()
             except Exception as e:
                 print('删除失败')
                 print(e)
-                db.session.callback()
-                return {'msg': '删除用例失败', 'code': '100002'}
+                db.session.rollback()
+                return {'msg': '用例删除失败', 'code': '100002'}
         else:
             print(f'未找到该用例id:{case_id}')
             return {'msg': '未找到该用例id', 'code': '100003'}
-        return {'msg': 'success', 'code': '0'}
+        return {'msg': 'success', 'code': '000000'}
 
 
 api.add_resource(TestCaseService, '/testcase')
 
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)

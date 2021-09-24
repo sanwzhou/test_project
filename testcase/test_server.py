@@ -3,10 +3,11 @@
 # @File  :test_server.py
 # @Author:swzhou
 # @email :zhou_sanwang@163.com
-# @describe: 测试服务
+# @describe: 测试一下
+
 import requests
 
-from backend.server import db, User, TestCase, TestCaseService
+from backend.server import db, User, TestCase
 
 
 def test_db():
@@ -32,28 +33,43 @@ def test_query_testcase():
 
 
 def test_query_testcase_by_id():
-    """测试查询所有用例"""
-    # todo:参数查询不可用
-    par = {'case_id': 1}
+    """测试查询指定id用例"""
+    par = {'case_id': 2}
     res = requests.get('http://127.0.0.1:5000/testcase', params=par)
     print(res.text)
     assert res.json()['code'] == '000000'
 
 
+def test_query_testcase_by_name():
+    """测试查询指定name用例"""
+    par = {'name': 1}
+    res = requests.get('http://127.0.0.1:5000/testcase', params=par)
+    print(res.json())
+    assert res.json()['code'] == '000000'
+
+
 def test_add_testcase():
     """测试添加用例"""
-    # todo:修改传参
-    case = TestCaseService()
-    res = case.post(name='3', steps='1,2,3,4,5')
-    print(res)
-    assert res['code'] == '000000'
-    print(case.get())
+    data = {'name': '3', 'steps': '1,2,3,4,5'}
+    res = requests.request('post', url='http://127.0.0.1:5000/testcase', json=data)
+    print(res.json())
+    assert res.json()['code'] == '000000'
+
+    res = requests.get('http://127.0.0.1:5000/testcase')
+    print(res.json)
 
 
 def test_del_testcase():
     """测试删除用例"""
-    # todo:修改传参
-    case = TestCaseService()
-    res = case.post(name='4', steps='1,2,3,4,5,6')
-    print(res)
-    print(case.get())
+    data = {'name': '4', 'steps': '1,2,3,4,5'}
+    requests.request('post', url='http://127.0.0.1:5000/testcase', json=data)
+
+    res = requests.get('http://127.0.0.1:5000/testcase', params={'name': 4})
+    case_id = res.json()['testcase'][0]['id']
+
+    res = requests.delete('http://127.0.0.1:5000/testcase', json={'case_id': case_id})
+    print(res.json())
+    assert res.json()['code'] == '000000'
+
+    res = requests.get('http://127.0.0.1:5000/testcase')
+    print(res.json())
