@@ -4,12 +4,14 @@
 # @Author:swzhou
 # @email :zhou_sanwang@163.com
 # @describe: server
+import json
 
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
+from jenkinsapi.jenkins import Jenkins
 
-from backend.settings import BaseConfig
+from backend.settings2 import BaseConfig
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -36,7 +38,7 @@ class TestCase(db.Model):
     description = db.Column(db.String(120), unique=False, nullable=True)
 
     def __repr__(self):
-        return f'id: {self.id}, name: {self.name}'
+        return f'<id: {self.id}, name: {self.name}>'
 
 
 class Task(db.Model):
@@ -46,6 +48,16 @@ class Task(db.Model):
     name = db.Column(db.String(16), unique=True, nullable=False)
     testcases = db.Column(db.String(1024), nullable=False)
     description = db.Column(db.String(1024), nullable=True)
+
+    def __repr__(self):
+        return f'<task_id: {self.id}, name: {self.name}>'
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'testcases': json.loads(self.testcases)
+        }
 
 
 class TestCaseService(Resource):
@@ -114,7 +126,7 @@ class TestCaseService(Resource):
         return {'msg': 'success', 'code': '000000'}
 
 
-class TaskServer(Resource):
+class TaskService(Resource):
     """
     测试任务服务
         {'msg': 'success', 'code': '000000'}
@@ -174,8 +186,34 @@ class TaskServer(Resource):
         return {'msg': 'success', 'code': '000000'}
 
 
+class ExectionService(Resource):
+    """执行任务服务"""
+    def __init__(self):
+        username = 'admin'
+        token = '11f3db83c8b78d459898329c6e2da122bb'
+        host = '192.168.56.2'
+        port = '8000'
+        self.jenkins = Jenkins(f'http://{host}:{port}',username=username,password=token)
+        self.jenkins_job = self.jenkins['flask_task']
+
+    def get(self):
+        # res = self.jenkins.version
+        # print(res)
+        pass
+
+    def post(self):
+        task_id = request.json.get('task_id')
+        if task_id:
+            task = Task.query.filter_by(id=task_id).first()
+            self.jenkins_job.invoke(build_params={'task': json.dumps(task.as_dict())})
+            return {'msg': 'success', 'code': '000000'}
+        else:
+            return {'msg': '未找到该任务id', 'code': '100003'}
+
+
 api.add_resource(TestCaseService, '/testcase')
-api.add_resource(TaskServer, '/task')
+api.add_resource(TaskService, '/task')
+api.add_resource(ExectionService, '/exection')
 
 if __name__ == '__main__':
     app.run(debug=True)
