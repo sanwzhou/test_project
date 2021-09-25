@@ -11,8 +11,8 @@ from backend.server import db, Task
 
 
 def test_db():
-    db.drop_all()
-    db.create_all()
+    # db.drop_all()
+    # db.create_all()
 
     task1 = Task(id='1', name='task1', description='1task', testcases='[1,2,3]')
     task2 = Task(id='2', name='task2', description='2task', testcases='[1,2,3,4]')

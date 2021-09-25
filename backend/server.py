@@ -40,6 +40,9 @@ class TestCase(db.Model):
     def __repr__(self):
         return f'<id: {self.id}, name: {self.name}>'
 
+    def as_dict(self):
+        return {'id': self.id, 'name': self.name, 'steps': self.steps, 'description': self.description}
+
 
 class Task(db.Model):
     """测试任务表"""
@@ -53,11 +56,19 @@ class Task(db.Model):
         return f'<task_id: {self.id}, name: {self.name}>'
 
     def as_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'testcases': json.loads(self.testcases)
-        }
+        return {'id': self.id, 'name': self.name, 'testcases': json.loads(self.testcases)}
+
+
+class Result(db.Model):
+    """测试结果"""
+    __tablename__ = 'results'
+    id = db.Column(db.Integer, primary_key=True)
+    testcase_id = db.Column(db.Integer, db.ForeignKey('testcases.id'))
+    status = db.Column(db.String(120), nullable=True)
+    outpot = db.Column(db.String(1024), nullable=True)
+
+    def as_dict(self):
+        return {'id': self.id, 'testcase_id': self.testcase_id, 'status': self.status, 'outpot': self.outpot}
 
 
 class TestCaseService(Resource):
@@ -83,9 +94,7 @@ class TestCaseService(Resource):
         else:
             cases = TestCase.query.all()
 
-        case_list = [{'id': case.id, 'name': case.name, 'steps': case.steps, 'description': case.description} for case
-                     in cases]
-        return {'msg': 'success', 'code': '000000', 'testcase': case_list}
+        return {'msg': 'success', 'code': '000000', 'testcase': [case.as_dict() for case in cases]}
 
     @staticmethod
     def post():
@@ -147,8 +156,7 @@ class TaskService(Resource):
         else:
             tasks = Task.query.all()
 
-        tasks = [{'id': task.id, 'name': task.name, 'description': task.description} for task in tasks]
-        return {'msg': 'success', 'code': '000000', 'tasks': tasks}
+        return {'msg': 'success', 'code': '000000', 'tasks': [task.as_dict() for task in tasks]}
 
     @staticmethod
     def post():
@@ -188,12 +196,13 @@ class TaskService(Resource):
 
 class ExectionService(Resource):
     """执行任务服务"""
+
     def __init__(self):
         username = 'admin'
         token = '11f3db83c8b78d459898329c6e2da122bb'
         host = '192.168.56.2'
         port = '8000'
-        self.jenkins = Jenkins(f'http://{host}:{port}',username=username,password=token)
+        self.jenkins = Jenkins(f'http://{host}:{port}', username=username, password=token)
         self.jenkins_job = self.jenkins['flask_task']
 
     def get(self):
@@ -211,9 +220,53 @@ class ExectionService(Resource):
             return {'msg': '未找到该任务id', 'code': '100003'}
 
 
+class ResultService(Resource):
+    """测试结果保存"""
+
+    @staticmethod
+    def get():
+        testcase_id = request.args.get('testcase_id')
+        if testcase_id:
+            results = Result.query.filter_by(testcase_id=testcase_id)
+        else:
+            results = Result.query.all()
+
+        return {'msg': 'success', 'code': '000000', 'results': [r.as_dict() for r in results]}
+
+    @staticmethod
+    def post():
+        testcase_id = request.json.get('testcase_id')
+        status = request.json.get('status')
+        outpot = request.json.get('outpot')
+        try:
+            result = Result(testcase_id=testcase_id, status=status, outpot=outpot)
+            db.session.add(result)
+            db.session.commit()
+        except Exception as e:
+            print('保存用例执行结果失败')
+            print(e)
+            db.session.rollback()
+            return {'msg': '保存用例执行结果失败', 'code': '100001'}
+        return {'msg': 'success', 'code': '000000'}
+
+
+class ReportService(Resource):
+    """查询测试结果生成测试报告"""
+
+    @staticmethod
+    def get():
+        pass
+
+    @staticmethod
+    def post():
+        pass
+
+
 api.add_resource(TestCaseService, '/testcase')
 api.add_resource(TaskService, '/task')
 api.add_resource(ExectionService, '/exection')
+api.add_resource(ResultService, '/result')
+api.add_resource(ReportService, '/report')
 
 if __name__ == '__main__':
     app.run(debug=True)
