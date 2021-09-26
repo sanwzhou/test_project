@@ -4,6 +4,7 @@
 # @Author:swzhou
 # @email :zhou_sanwang@163.com
 # @describe: server
+
 import json
 
 from flask import Flask, request
@@ -33,8 +34,8 @@ class TestCase(db.Model):
     """测试用例表"""
     __tablename__ = 'testcases'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
-    steps = db.Column(db.String(1024), nullable=False)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    steps = db.Column(db.String(1024), nullable=True)
     description = db.Column(db.String(120), unique=False, nullable=True)
 
     def __repr__(self):
@@ -56,7 +57,14 @@ class Task(db.Model):
         return f'<task_id: {self.id}, name: {self.name}>'
 
     def as_dict(self):
-        return {'id': self.id, 'name': self.name, 'testcases': json.loads(self.testcases)}
+        testcase_ids = json.loads(self.testcases)
+        case_names = []
+        for case_id in testcase_ids:
+            testcase = TestCase.query.filter_by(id=case_id).first()
+            case_names.append(testcase.name)
+
+        return {"id": self.id, 'name': self.name, 'testcases': json.loads(self.testcases),
+                "command": "pytest.main(['" + "','".join(case_names) + "'])" }
 
 
 class Result(db.Model):
@@ -214,7 +222,11 @@ class ExectionService(Resource):
         task_id = request.json.get('task_id')
         if task_id:
             task = Task.query.filter_by(id=task_id).first()
-            self.jenkins_job.invoke(build_params={'task': json.dumps(task.as_dict())})
+            self.jenkins_job.invoke(build_params={
+                'task': json.dumps(task.as_dict()),
+                'task_id': task.id,
+                'command': task.as_dict()['command']
+            })
             return {'msg': 'success', 'code': '000000'}
         else:
             return {'msg': '未找到该任务id', 'code': '100003'}
