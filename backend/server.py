@@ -7,12 +7,12 @@
 
 import json
 
+from backend.settings2 import BaseConfig
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
 from jenkinsapi.jenkins import Jenkins
-
-from backend.settings2 import BaseConfig
+from utils.handle_yaml import handle_yaml
 
 app = Flask(__name__)
 app.config.from_object(BaseConfig)
@@ -64,7 +64,7 @@ class Task(db.Model):
             case_names.append(testcase.name)
 
         return {"id": self.id, 'name': self.name, 'testcases': json.loads(self.testcases),
-                "command": "pytest.main(['" + "','".join(case_names) + "'])" }
+                "command": "pytest.main(['" + "','".join(case_names) + "'])"}
 
 
 class Result(db.Model):
@@ -171,7 +171,6 @@ class TaskService(Resource):
         name = request.json.get('name')
         description = request.json.get('description')
         testcases = request.json.get('testcases')
-        print(1, name, description, testcases)
 
         try:
             task = Task(name=name, description=description, testcases=testcases)
@@ -206,12 +205,11 @@ class ExectionService(Resource):
     """执行任务服务"""
 
     def __init__(self):
-        username = 'admin'
-        token = '11f3db83c8b78d459898329c6e2da122bb'
-        host = '192.168.56.2'
-        port = '8000'
-        self.jenkins = Jenkins(f'http://{host}:{port}', username=username, password=token)
-        self.jenkins_job = self.jenkins['flask_task']
+        config = handle_yaml.get_value('backend/config2.yaml', 'jenkins')
+
+        host, port, user, token = config['host'], config['port'], config['user'], config['token']
+        self.jenkins = Jenkins(f'http://{host}:{port}', username=user, password=token)
+        self.jenkins_job = self.jenkins[config['job']]
 
     def get(self):
         # res = self.jenkins.version

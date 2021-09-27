@@ -19,6 +19,7 @@ def test_db():
     db.session.add_all([result1,result2])
     db.session.commit()
 
+
 def test_query_result():
     res = requests.get('http://127.0.0.1:5000/result').json()
     print(res)

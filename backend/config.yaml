@@ -1,0 +1,6 @@
+jenkins:
+  host: '192.168.56.2'
+  port: '8000'
+  user: 'admin'
+  token: '11f3db83c8b78d459898329c6e2da122bb'
+  job: 'flask_task'

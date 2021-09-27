@@ -4,6 +4,7 @@
 # @Author:swzhou
 # @email :zhou_sanwang@163.com
 # @describe: 测试 执行服务
+
 import requests
 
 
@@ -14,7 +15,7 @@ def test_query_exection():
 
 def test_exec_exection():
     """测试执行任务"""
-    data = {'task_id': 4}
+    data = {'task_id': 5}
     res = requests.post('http://127.0.0.1:5000/exection',json=data).json()
     print(res)
     assert res['code'] == '000000'

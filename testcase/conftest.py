@@ -21,9 +21,10 @@ import requests
 #
 #     for item in items:
 #         print({"nodeid": item.nodeid, "name": item.name})
-#
+# #
 #         if item.nodeid not in case_name:
 #             data = {'name': item.nodeid, 'description': item.name}
 #             print('data:', data)
 #             res = requests.request('post', url='http://127.0.0.1:5000/testcase', json=data)
 #             assert res.json()['code'] == '000000'
+

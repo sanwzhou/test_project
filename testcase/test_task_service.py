@@ -41,7 +41,7 @@ def test_query_task_by_name():
 
 
 def test_add_task():
-    data = {'name': 3, 'description': '3task', 'testcases': '[3,4,5]'}
+    data = {'name': 3, 'description': '3task', 'testcases': '[27,28,29]'}
     res = requests.post('http://127.0.0.1:5000/task', json=data).json()
     print(res)
     assert res['code'] == '000000'
