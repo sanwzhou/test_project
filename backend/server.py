@@ -7,6 +7,8 @@
 
 import json
 
+from flask_cors import CORS
+
 from backend.settings2 import BaseConfig
 from flask import Flask, request
 from flask_restful import Resource, Api
@@ -18,6 +20,7 @@ app = Flask(__name__)
 app.config.from_object(BaseConfig)
 api = Api(app)
 db = SQLAlchemy(app)
+CORS(app)
 
 
 class User(db.Model):

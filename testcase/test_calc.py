@@ -22,3 +22,7 @@ class Testcalc:
     def test_add_int(self, x, y, expected):
         logging.info(f'测试加法-整数功能 参数：{x, y},预期结果：{expected}')
         assert x + y == expected
+
+
+if __name__ == '__main__':
+    pytest.main(["Testcalc"])
