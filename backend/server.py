@@ -126,6 +126,32 @@ class TestCaseService(Resource):
         return {'msg': 'success', 'code': '000000'}
 
     @staticmethod
+    def put():
+        """修改测试用例"""
+        case_id = request.json.get('id')
+
+        if case_id and TestCase.query.get(case_id):
+            name = request.json.get('name')
+            steps = request.json.get('steps')
+            description = request.json.get('description')
+
+            try:
+                case = TestCase.query.filter_by(id=case_id).first()
+                case.name = name
+                case.steps = steps
+                case.description = description
+                db.session.add(case)
+                db.session.commit()
+            except Exception as e:
+                print('添加失败')
+                print(e)
+                db.session.rollback()
+                return {'msg': '用例添加失败', 'code': '100001'}
+            return {'msg': 'success', 'code': '000000'}
+        else:
+            return {'msg': '未找到该用例id', 'code': '100003'}
+
+    @staticmethod
     def delete():
         """删除指定测试用例"""
         case_id = request.json.get('case_id')
