@@ -7,13 +7,15 @@
 
 import json
 
+from flask import Flask, request, url_for
 from flask_cors import CORS
-
-from backend.settings2 import BaseConfig
-from flask import Flask, request
+from flask_httpauth import HTTPBasicAuth
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
 from jenkinsapi.jenkins import Jenkins
+
+from backend.auth import user_token
+from backend.settings2 import BaseConfig
 from utils.handle_yaml import handle_yaml
 
 app = Flask(__name__)
@@ -21,6 +23,7 @@ app.config.from_object(BaseConfig)
 api = Api(app)
 db = SQLAlchemy(app)
 CORS(app)
+auth = HTTPBasicAuth()
 
 
 class User(db.Model):
@@ -143,10 +146,10 @@ class TestCaseService(Resource):
                 db.session.add(case)
                 db.session.commit()
             except Exception as e:
-                print('添加失败')
+                print('修改失败')
                 print(e)
                 db.session.rollback()
-                return {'msg': '用例添加失败', 'code': '100001'}
+                return {'msg': '用例修改失败', 'code': '100001'}
             return {'msg': 'success', 'code': '000000'}
         else:
             return {'msg': '未找到该用例id', 'code': '100003'}
@@ -230,12 +233,11 @@ class TaskService(Resource):
         return {'msg': 'success', 'code': '000000'}
 
 
-class ExectionService(Resource):
+class ExecutionService(Resource):
     """执行任务服务"""
 
     def __init__(self):
         config = handle_yaml.get_value('backend/config2.yaml', 'jenkins')
-
         host, port, user, token = config['host'], config['port'], config['user'], config['token']
         self.jenkins = Jenkins(f'http://{host}:{port}', username=user, password=token)
         self.jenkins_job = self.jenkins[config['job']]
@@ -301,11 +303,54 @@ class ReportService(Resource):
         pass
 
 
+class LoginService(Resource):
+    """登录"""
+
+    @staticmethod
+    def post():
+        username = request.json.get('username')
+        password = request.json.get('password')
+        if username and password:
+            user = User.query.filter_by(name=username).first()
+            if not user:
+                return {'msg': '账号不存在', 'code': '200003'}
+            elif user.passwd != password:
+                return {'msg': '账号/密码不匹配', 'code': '200004'}
+        else:
+            return {'msg': '账号/密码不能为空', 'code': '200002'}
+
+        token = user_token.generate_auth_token(user.id).decode(encoding='utf-8')
+        return {'msg': 'login success', 'code': '000000', 'token': token}
+
+
+class LogoutService(Resource):
+    """退出"""
+
+    @staticmethod
+    def post():
+        # username = request.json.get('username')
+        # if username:
+        #     pass
+        return {'msg': 'logout success', 'code': '000000'}
+
+
+@app.before_request
+def is_login():
+    # g.user = None
+    if request.path != url_for('loginservice'):  # "/login"
+        status = user_token.verify_passwd(request.headers.get('token', None))
+        if not status:
+            return {'msg': 'token验证失败,请登录后访问', 'code': '200001'}
+
+
 api.add_resource(TestCaseService, '/testcase')
 api.add_resource(TaskService, '/task')
-api.add_resource(ExectionService, '/exection')
+api.add_resource(ExecutionService, '/execution')
 api.add_resource(ResultService, '/result')
 api.add_resource(ReportService, '/report')
+api.add_resource(LoginService, '/login')
+api.add_resource(LogoutService, '/logout')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

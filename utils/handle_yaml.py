@@ -18,9 +18,13 @@ class HandleYaml:
         with open(file_path, encoding='utf8') as f:
             return yaml.load(f, Loader=yaml.FullLoader)
 
-    def get_value(self, file, key=None):
+    def get_value(self, file, key1=None, key2=None):
         data = self.load_yaml(file)
-        return data.get(key, None) if key else data
+        if key1:
+            data = data.get(key1, None)
+            if key2:
+                data = data.get(key2, None)
+        return data
 
 
 handle_yaml = HandleYaml()

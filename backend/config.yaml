@@ -4,3 +4,6 @@ jenkins:
   user: 'admin'
   token: '11f3db83c8b78d459898329c6e2da122bb'
   job: 'flask_task'
+
+login:
+  secret_key: 'test_passwd_20211029'
