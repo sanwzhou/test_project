@@ -9,6 +9,7 @@ import re
 from flask_httpauth import HTTPBasicAuth
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 
+from backend.models.user_model import User
 from utils.handle_yaml import handle_yaml
 
 
@@ -36,7 +37,7 @@ class UserToken:
             return None
         except BadSignature:
             return None
-        from backend.server import User
+
         user = User.query.filter_by(id=data['user_id']).first()
         # print('user:',user)
         return user

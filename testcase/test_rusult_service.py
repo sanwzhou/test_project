@@ -7,7 +7,8 @@
 
 import requests
 
-from backend.server import db, Result
+from backend.models.result_model import Result
+from backend.server import db
 
 
 def test_db():

@@ -7,7 +7,8 @@
 
 import requests
 
-from backend.server import db, Task
+from backend.models.task_model import Task
+from backend.server import db
 
 
 def test_db():

@@ -7,7 +7,9 @@
 
 import requests
 
-from backend.server import db, User, TestCase
+from backend.models.testcase_model import TestCase
+from backend.models.user_model import User
+from backend.server import db
 
 
 def test_db():
@@ -29,6 +31,7 @@ def test_query_testcase():
     """测试查询所有用例"""
     res = requests.get('http://127.0.0.1:5000/testcase')
     print(res.text)
+    print(res.json)
     assert res.json()['code'] == '000000'
 
 
